@@ -708,8 +708,8 @@
             { id: 0, emoji: '2️⃣', label: '±2 Years', color: '#3B82F6' },
             { id: 1, emoji: '4️⃣', label: '±4 Years', color: '#FFD93D' },
             { id: 2, emoji: '📅', label: 'Before/After 2000', color: '#FF6B9D' },
-            { id: 3, emoji: '👤', label: 'Solo or Band', color: '#4ECDC4' },
-            { id: 4, emoji: '0\'s', label: 'Guess the Decade', color: '#A855F7' }
+            { id: 3, emoji: '👤', label: 'Solo or Band', color: '#54bc48' },
+            { id: 4, emoji: '0\'s', label: 'Guess the Decade', color: '#9372f6' }
         ];
 
         // Playlist will be loaded from tracks.json
@@ -2968,14 +2968,35 @@
             },
 
             showModeIntro() {
-                document.getElementById('selectedModeEmoji').textContent = GameState.currentMode.emoji;
-                document.getElementById('selectedModeLabel').textContent = GameState.currentMode.label;
+                const mode = GameState.currentMode;
+                document.getElementById('selectedModeEmoji').textContent = mode.emoji;
+                document.getElementById('selectedModeLabel').textContent = mode.label;
+
+                // Card background like the selection animation
+                const container = document.querySelector('.mode-display-large');
+                container.style.background = `linear-gradient(135deg, ${mode.color} 0%, rgba(255, 255, 255, 0.05) 100%)`;
+                container.style.boxShadow = `0 0 40px ${mode.color}60`;
+                container.style.borderColor = 'transparent';
+
                 this.showScreen('modeIntroScreen');
             },
 
             async displaySong(song) {
-                document.getElementById('currentModeEmoji').textContent = GameState.currentMode.emoji;
-                document.getElementById('currentModeLabel').textContent = GameState.currentMode.label;
+                const mode = GameState.currentMode;
+
+                // Update Mode Display with card background
+                document.getElementById('currentModeEmoji').textContent = mode.emoji;
+                document.getElementById('currentModeLabel').textContent = mode.label;
+
+                const modeDisplayBox = document.querySelector('.mode-display');
+                modeDisplayBox.style.background = `linear-gradient(135deg, ${mode.color} 0%, rgba(255, 255, 255, 0.05) 100%)`;
+                modeDisplayBox.style.boxShadow = `0 0 20px ${mode.color}40`;
+                modeDisplayBox.style.borderColor = 'transparent';
+
+                // Update Progress Color (but NOT the music icon)
+                const progressFill = document.querySelector('.progress-fill');
+                progressFill.style.background = mode.color;
+                progressFill.style.boxShadow = `0 0 10px ${mode.color}`;
 
                 document.getElementById('songTitle').textContent = song.name;
                 document.getElementById('artistName').textContent = song.artist;
