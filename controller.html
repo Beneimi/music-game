@@ -290,20 +290,22 @@
 
         // --- Switch Logic ---
         function selectSwitch(group, value) {
+            // If this group is already active but we clicked the non-active button?
+            // "lock the other options inside the mode input too" implies we cannot switch.
+            // So if activeSection is set, we can only interact if we are technically "clearing" it? 
+            // The prompt says "unless i clear". So making a choice is final until clear.
+
+            if (activeSection && activeSection !== group) return; // Locked by other section
+
+            // If we already made a selection in this group, return (strict lock)
+            // We check if any sibling is already active.
+            const section = document.getElementById('section-' + group);
+            const isActive = section.querySelector('.switch-btn.active');
+            if (isActive) return;
+
             if (!lockOthers(group)) return;
 
-            // Find buttons in this group
-            const section = document.getElementById('section-' + group);
             const buttons = section.querySelectorAll('.switch-btn');
-
-            // Visual toggle
-            // We find which one was clicked by text content or similar, but simpler is to pass 'this' context,
-            // but for now let's just use event target from DOM click for simplicity in locating siblings? 
-            // Actually, let's just reset all in group and set the clicked one.
-            // Since we passed values, we can't easily map back to element without ID.
-            // Let's iterate.
-
-            // Hacky but works: check text content includes the label
             const labels = {
                 'solo': 'Solo', 'band': 'Band',
                 'before': 'Pre-2000', 'after': 'Post-2000'
@@ -313,18 +315,33 @@
                 if (btn.textContent.includes(labels[value])) {
                     btn.classList.add('active');
                 } else {
-                    btn.classList.remove('active');
+                    btn.classList.add('disabled'); // Disable the unchosen one
+                    btn.style.opacity = '0.3';
+                    btn.style.pointerEvents = 'none';
                 }
             });
         }
 
         // --- Decade Logic ---
         function selectDecade(btn) {
+            if (activeSection && activeSection !== 'decades') return;
+
+            // Check if already selected
+            const section = document.getElementById('section-decades');
+            if (section.querySelector('.decade-btn.active')) return;
+
             if (!lockOthers('decades')) return;
 
-            // Remove active from others
-            document.querySelectorAll('.decade-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+            const buttons = section.querySelectorAll('.decade-btn');
+            buttons.forEach(b => {
+                if (b === btn) {
+                    b.classList.add('active');
+                } else {
+                    b.classList.add('disabled'); // Disable peers
+                    b.style.opacity = '0.3';
+                    b.style.pointerEvents = 'none';
+                }
+            });
         }
 
         // --- Year Logic ---
@@ -345,11 +362,6 @@
             if (activeSection !== 'year') return;
             currentYear = currentYear.slice(0, -1);
             updateYearDisplay();
-
-            if (currentYear.length === 0) {
-                // If year is empty, technically we could unlock, but specs say clear button needed.
-                // Keeping locked for consistent behavior "when any input is made"
-            }
         }
 
         // --- Clear Logic ---
@@ -364,12 +376,23 @@
             updateYearDisplay();
 
             // Reset Decades
-            document.querySelectorAll('.decade-btn').forEach(b => b.classList.remove('active'));
+            const decades = document.querySelectorAll('.decade-btn');
+            decades.forEach(b => {
+                b.classList.remove('active', 'disabled');
+                b.style.opacity = '';
+                b.style.pointerEvents = '';
+            });
 
             // Reset Switches
-            document.querySelectorAll('.switch-btn').forEach(b => b.classList.remove('active'));
+            const switches = document.querySelectorAll('.switch-btn');
+            switches.forEach(b => {
+                b.classList.remove('active', 'disabled');
+                b.style.opacity = '';
+                b.style.pointerEvents = '';
+            });
         }
     </script>
 </body>
 
 </html>
+```
