@@ -1,0 +1,3144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Song Guessing Game - Apple Music</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --mode-0-color: #FF6B9D;
+            /* Pink - ±2 Years */
+            --mode-1-color: #4ECDC4;
+            /* Cyan - ±4 Years */
+            --mode-2-color: #FFD93D;
+            /* Yellow - Before/After 2000 */
+            --mode-3-color: #A78BFA;
+            /* Purple - Solo/Band */
+
+            --bg-dark: #0F0F1E;
+            --bg-card: rgba(255, 255, 255, 0.05);
+            --text-primary: #FFFFFF;
+            --text-secondary: #B4B4C8;
+            --accent: #6366F1;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0F0F1E 0%, #1a1a2e 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Screen Management */
+        .screen {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .screen.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background-color: #1a1a2e;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 500px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 1rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 2rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .setting-item {
+            margin-bottom: 1.5rem;
+        }
+
+        .setting-item label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        /* Toggle Switch Styles */
+        .toggle-container {
+            display: flex;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 0.5rem;
+            padding: 0.25rem;
+            gap: 0.5rem;
+        }
+
+        .toggle-option {
+            flex: 1;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .toggle-option input {
+            display: none;
+        }
+
+        .toggle-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+            font-weight: 500;
+            width: 100%;
+        }
+
+        .toggle-option input:checked+.toggle-btn {
+            background-color: var(--accent);
+            color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-option:hover .toggle-btn {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .toggle-option input:checked:hover .toggle-btn {
+            background-color: var(--accent);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        /* Start Screen */
+        #startScreen h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--mode-0-color), var(--mode-1-color), var(--mode-2-color), var(--mode-3-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        /* Buttons */
+        .btn-primary,
+        .btn-secondary,
+        .btn-play {
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 1.25rem;
+            padding: 1.5rem 3rem;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            min-height: 64px;
+            touch-action: manipulation;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, #8B5CF6 100%);
+            color: white;
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            color: var(--text-primary);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem 2rem;
+            font-size: 1rem;
+        }
+
+        .btn-secondary:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .btn-play {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 8px 32px rgba(16, 185, 129, 0.4);
+            font-size: 1.5rem;
+        }
+
+        .btn-play:active {
+            transform: scale(0.95);
+        }
+
+        /* Mode Selection Grid */
+        .mode-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            width: 100vw;
+            height: 100vh;
+            gap: 0;
+        }
+
+        .mode-quadrant {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: var(--bg-dark);
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .mode-quadrant[data-mode="0"] {
+            background: linear-gradient(135deg, rgba(255, 107, 157, 0.1) 0%, transparent 100%);
+        }
+
+        .mode-quadrant[data-mode="1"] {
+            background: linear-gradient(135deg, rgba(78, 205, 196, 0.1) 0%, transparent 100%);
+        }
+
+        .mode-quadrant[data-mode="2"] {
+            background: linear-gradient(135deg, rgba(255, 217, 61, 0.1) 0%, transparent 100%);
+        }
+
+        .mode-quadrant[data-mode="3"] {
+            background: linear-gradient(135deg, rgba(167, 139, 250, 0.1) 0%, transparent 100%);
+        }
+
+        .mode-quadrant.active {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .mode-quadrant[data-mode="0"].active {
+            background: linear-gradient(135deg, var(--mode-0-color) 0%, rgba(255, 107, 157, 0.3) 100%);
+            box-shadow: 0 0 60px var(--mode-0-color);
+        }
+
+        .mode-quadrant[data-mode="1"].active {
+            background: linear-gradient(135deg, var(--mode-1-color) 0%, rgba(78, 205, 196, 0.3) 100%);
+            box-shadow: 0 0 60px var(--mode-1-color);
+        }
+
+        .mode-quadrant[data-mode="2"].active {
+            background: linear-gradient(135deg, var(--mode-2-color) 0%, rgba(255, 217, 61, 0.3) 100%);
+            box-shadow: 0 0 60px var(--mode-2-color);
+        }
+
+        .mode-quadrant[data-mode="3"].active {
+            background: linear-gradient(135deg, var(--mode-3-color) 0%, rgba(167, 139, 250, 0.3) 100%);
+            box-shadow: 0 0 60px var(--mode-3-color);
+        }
+
+        .mode-content {
+            text-align: center;
+            opacity: 0.4;
+            transition: opacity 0.3s ease;
+        }
+
+        .mode-quadrant.active .mode-content {
+            opacity: 1;
+        }
+
+        .mode-emoji {
+            font-size: 6rem;
+            margin-bottom: 1rem;
+        }
+
+        .mode-label {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Mode Intro Screen */
+        .intro-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .mode-display-large {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            padding: 3rem;
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 3rem;
+        }
+
+        #selectedModeEmoji {
+            font-size: 8rem;
+        }
+
+        #selectedModeLabel {
+            font-size: 2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Game Screen States */
+        .hidden-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            max-width: 600px;
+            min-height: 300px;
+        }
+
+        .music-icon {
+            font-size: 6rem;
+            animation: pulse 2s ease-in-out infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+        }
+
+        .listening-text {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .revealed-state {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        /* Game Screen */
+        .mode-display {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 2rem;
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        #currentModeEmoji {
+            font-size: 2rem;
+        }
+
+        .song-info {
+            text-align: center;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .album-art {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+            border-radius: 16px;
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        #songTitle {
+            font-size: 1.5rem;
+            font-weight: 900;
+            margin-bottom: 0.5rem;
+        }
+
+        #artistName {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .year-display {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent);
+            padding: 0.5rem 1rem;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .audio-controls {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #8B5CF6);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .game-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* Tablet Optimizations */
+        @media (max-width: 1024px) {
+            .container {
+                padding: 1.5rem;
+            }
+
+            #startScreen h1 {
+                font-size: 2.5rem;
+            }
+
+            .mode-emoji {
+                font-size: 5rem;
+            }
+
+            .album-art {
+                width: 250px;
+                height: 250px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .mode-emoji {
+                font-size: 4rem;
+            }
+
+            .mode-label {
+                font-size: 1rem;
+            }
+
+            .album-art {
+                width: 200px;
+                height: 200px;
+            }
+
+            #songTitle {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Start Screen -->
+    <div id="startScreen" class="screen active">
+        <div class="container">
+            <h1>🎵 Song Guessing Game</h1>
+            <p class="subtitle">Powered by Apple Music</p>
+            <button id="startBtn" class="btn-primary">Start Game</button>
+            <button id="settingsBtn" class="btn-secondary" style="margin-top: 1rem;">⚙️ Settings</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ Settings</h2>
+                <button id="closeSettingsBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-item">
+                    <label>Playlist Source</label>
+                    <div class="toggle-container">
+                        <label class="toggle-option">
+                            <input type="radio" name="playlistSource" value="hun" checked>
+                            <span class="toggle-btn">🇭🇺 Hitster Hungary</span>
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="playlistSource" value="bingo">
+                            <span class="toggle-btn">🎱 Hitster Bingo</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mode Selection Screen -->
+    <div id="modeSelectionScreen" class="screen">
+        <div class="mode-grid">
+            <div class="mode-quadrant" data-mode="0">
+                <div class="mode-content">
+                    <div class="mode-emoji">2️⃣</div>
+                    <div class="mode-label">±2 Years</div>
+                </div>
+            </div>
+            <div class="mode-quadrant" data-mode="1">
+                <div class="mode-content">
+                    <div class="mode-emoji">4️⃣</div>
+                    <div class="mode-label">±4 Years</div>
+                </div>
+            </div>
+            <div class="mode-quadrant" data-mode="2">
+                <div class="mode-content">
+                    <div class="mode-emoji">📅</div>
+                    <div class="mode-label">Before/After 2000</div>
+                </div>
+            </div>
+            <div class="mode-quadrant" data-mode="3">
+                <div class="mode-content">
+                    <div class="mode-emoji">👤</div>
+                    <div class="mode-label">Solo or Band</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mode Intro Screen -->
+    <div id="modeIntroScreen" class="screen">
+        <div class="container">
+            <h2 class="intro-title">Selected Mode:</h2>
+            <div class="mode-display-large">
+                <span id="selectedModeEmoji"></span>
+                <span id="selectedModeLabel"></span>
+            </div>
+            <button id="proceedBtn" class="btn-primary">Play Song</button>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameScreen" class="screen">
+        <div class="container">
+            <div class="mode-display">
+                <span id="currentModeEmoji"></span>
+                <span id="currentModeLabel"></span>
+            </div>
+
+            <!-- Hidden State: Show while playing -->
+            <div id="hiddenState" class="hidden-state">
+                <div class="music-icon">🎵</div>
+                <p class="listening-text">Listen to the song...</p>
+                <button id="revealBtn" class="btn-primary">Reveal Answer</button>
+            </div>
+
+            <!-- Revealed State: Show after reveal -->
+            <div id="revealedState" class="revealed-state" style="display: none;">
+                <div class="song-info">
+                    <div id="albumArt" class="album-art"></div>
+                    <h2 id="songTitle">Loading...</h2>
+                    <p id="artistName">Artist</p>
+                    <p id="releaseYear" class="year-display">Year</p>
+                </div>
+            </div>
+
+            <div class="audio-controls">
+                <button id="playBtn" class="btn-play">▶️ Play</button>
+                <div id="audioProgress" class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+            </div>
+
+            <div class="game-actions">
+                <button id="nextBtn" class="btn-secondary">Next Song</button>
+                <button id="homeBtn" class="btn-secondary">Home</button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="audioPlayer"></audio>
+    <script>
+        // Game State
+        const GameState = {
+            currentMode: null,
+            currentSong: null,
+            audioPlayer: null
+        };
+
+        // Game Modes Configuration
+        const GameModes = [
+            { id: 0, emoji: '2️⃣', label: '±2 Years', color: '#FF6B9D' },
+            { id: 1, emoji: '4️⃣', label: '±4 Years', color: '#4ECDC4' },
+            { id: 2, emoji: '📅', label: 'Before/After 2000', color: '#FFD93D' },
+            { id: 3, emoji: '👤', label: 'Solo or Band', color: '#A78BFA' }
+        ];
+
+        // Playlist will be loaded from tracks.json
+        const hunSongs = [
+            {
+                "artist": "Billy Joel",
+                "title": "Uptown Girl"
+            },
+            {
+                "artist": "Scatman John",
+                "title": "Scatman (ski-ba-bop-ba-dop-bop)"
+            },
+            {
+                "artist": "The B-52's",
+                "title": "Love Shack"
+            },
+            {
+                "artist": "Omega",
+                "title": "Nem tudom a neved"
+            },
+            {
+                "artist": "Raffa Fl",
+                "title": "Ritmo"
+            },
+            {
+                "artist": "Imagine Dragons",
+                "title": "Believer"
+            },
+            {
+                "artist": "The Killers",
+                "title": "Human"
+            },
+            {
+                "artist": "Soho Party",
+                "title": "Az Éjjel Soha Nem Ér Véget"
+            },
+            {
+                "artist": "Britney Spears",
+                "title": "...Baby One More Time"
+            },
+            {
+                "artist": "KFT",
+                "title": "Afrika"
+            },
+            {
+                "artist": "Mate Peter",
+                "title": "Egy darabot a szívemből"
+            },
+            {
+                "artist": "Carpe Diem",
+                "title": "Álomhajó"
+            },
+            {
+                "artist": "Robin S",
+                "title": "Show Me Love"
+            },
+            {
+                "artist": "Inner Circle",
+                "title": "Sweat (A La La La La Long)"
+            },
+            {
+                "artist": "United",
+                "title": "Hófehér Jaguár - Radio Edit"
+            },
+            {
+                "artist": "David Guetta;Sia",
+                "title": "Titanium (feat. Sia)"
+            },
+            {
+                "artist": "Pokolgép",
+                "title": "Adj Új Erőt"
+            },
+            {
+                "artist": "Mr. President",
+                "title": "Coco Jamboo - Radio Version"
+            },
+            {
+                "artist": "Ava Max",
+                "title": "Kings & Queens"
+            },
+            {
+                "artist": "Stealers Wheel",
+                "title": "Stuck In The Middle With You"
+            },
+            {
+                "artist": "The Weeknd",
+                "title": "Save Your Tears"
+            },
+            {
+                "artist": "Shawn Mendes",
+                "title": "There's Nothing Holdin' Me Back"
+            },
+            {
+                "artist": "Viktoria Vincze",
+                "title": "Hany ejjel vartam"
+            },
+            {
+                "artist": "Felső Tízezer",
+                "title": "Süllyedő hajó"
+            },
+            {
+                "artist": "*NSYNC",
+                "title": "Bye Bye Bye"
+            },
+            {
+                "artist": "Kylie Minogue",
+                "title": "Can't Get You out of My Head"
+            },
+            {
+                "artist": "Bagossy Brothers Company",
+                "title": "Olyan Ő"
+            },
+            {
+                "artist": "BEATRICE",
+                "title": "Nyolc óra munka"
+            },
+            {
+                "artist": "Kesha",
+                "title": "TiK ToK"
+            },
+            {
+                "artist": "Mike Oldfield",
+                "title": "Moonlight Shadow"
+            },
+            {
+                "artist": "Anti Fitness Club",
+                "title": "Mennyország"
+            },
+            {
+                "artist": "IHÁSZ GÁBOR",
+                "title": "Elszáll A Gondom"
+            },
+            {
+                "artist": "Midnight Oil",
+                "title": "Beds Are Burning - Remastered"
+            },
+            {
+                "artist": "Bonnie Tyler",
+                "title": "Total Eclipse of the Heart"
+            },
+            {
+                "artist": "Neoton Familia",
+                "title": "Kétszázhúsz felett"
+            },
+            {
+                "artist": "BEATRICE",
+                "title": "Azok a boldog szép napok"
+            },
+            {
+                "artist": "UFO",
+                "title": "Szerelemdoktor"
+            },
+            {
+                "artist": "Robert Palmer",
+                "title": "Simply Irresistible"
+            },
+            {
+                "artist": "Carl Douglas",
+                "title": "Kung Fu Fighting"
+            },
+            {
+                "artist": "Follow The Flow",
+                "title": "Tavasz"
+            },
+            {
+                "artist": "Smash Mouth",
+                "title": "All Star"
+            },
+            {
+                "artist": "Császár Előd",
+                "title": "Tiltott szerelem"
+            },
+            {
+                "artist": "Bikini",
+                "title": "Közeli helyeken"
+            },
+            {
+                "artist": "Daddy Yankee",
+                "title": "Gasolina"
+            },
+            {
+                "artist": "Baccara",
+                "title": "Yes Sir, I Can Boogie"
+            },
+            {
+                "artist": "Taio Cruz",
+                "title": "Dynamite"
+            },
+            {
+                "artist": "Depeche Mode",
+                "title": "Just Can't Get Enough"
+            },
+            {
+                "artist": "Baby Gabi",
+                "title": "Őrült Szerelem"
+            },
+            {
+                "artist": "4F-Club",
+                "title": "Balatoni láz"
+            },
+            {
+                "artist": "Molnár Ferenc Caramel",
+                "title": "Lélekdonor"
+            },
+            {
+                "artist": "Ben E. King",
+                "title": "Stand By Me"
+            },
+            {
+                "artist": "ByeAlex és a Slepp;Hiro",
+                "title": "Így Hagysz El"
+            },
+            {
+                "artist": "Iggy Azalea;Charli xcx",
+                "title": "Fancy"
+            },
+            {
+                "artist": "Harold Faltermeyer",
+                "title": "Axel F"
+            },
+            {
+                "artist": "Gloria Gaynor",
+                "title": "I Will Survive - Single Version"
+            },
+            {
+                "artist": "Lady Gaga",
+                "title": "Bad Romance"
+            },
+            {
+                "artist": "TNT",
+                "title": "Kicsi gesztenye - Radio Edit"
+            },
+            {
+                "artist": "Justin Timberlake",
+                "title": "CAN'T STOP THE FEELING! (from DreamWorks Animation's \"TROLLS\")"
+            },
+            {
+                "artist": "Nox",
+                "title": "Százszor ölelj Még!"
+            },
+            {
+                "artist": "Luis Fonsi;Daddy Yankee",
+                "title": "Despacito"
+            },
+            {
+                "artist": "Dolly Parton",
+                "title": "9 to 5"
+            },
+            {
+                "artist": "Color",
+                "title": "Fényes kövek"
+            },
+            {
+                "artist": "Cutting Crew",
+                "title": "(I Just) Died In Your Arms"
+            },
+            {
+                "artist": "EDDA Művek",
+                "title": "A kör"
+            },
+            {
+                "artist": "J Balvin;Willy William",
+                "title": "Mi Gente - Original Mix"
+            },
+            {
+                "artist": "Kelemen Kabátban",
+                "title": "Nyári Dallam"
+            },
+            {
+                "artist": "Green Day",
+                "title": "American Idiot"
+            },
+            {
+                "artist": "Backstreet Boys",
+                "title": "Everybody (Backstreet's Back) - Radio Edit"
+            },
+            {
+                "artist": "Evanescence",
+                "title": "Bring Me To Life"
+            },
+            {
+                "artist": "Belinda Carlisle",
+                "title": "Heaven Is A Place On Earth"
+            },
+            {
+                "artist": "Taylor Swift",
+                "title": "Shake It Off"
+            },
+            {
+                "artist": "Jessie J;Ariana Grande;Nicki Minaj",
+                "title": "Bang Bang"
+            },
+            {
+                "artist": "Zoltán Erika",
+                "title": "Szerelemre születtem"
+            },
+            {
+                "artist": "T. Rex",
+                "title": "Get It On"
+            },
+            {
+                "artist": "Szandi",
+                "title": "Tinédzser l'amour"
+            },
+            {
+                "artist": "Elvis Presley",
+                "title": "It's Now or Never"
+            },
+            {
+                "artist": "Konyha",
+                "title": "Földrevaló (Julinak)"
+            },
+            {
+                "artist": "The Corrs;Tin Tin Out",
+                "title": "What Can I Do"
+            },
+            {
+                "artist": "Napoleon Boulevard",
+                "title": "Júlia nem akar a földön járni"
+            },
+            {
+                "artist": "George Michael",
+                "title": "Faith"
+            },
+            {
+                "artist": "László Komár",
+                "title": "No Miss"
+            },
+            {
+                "artist": "B.o.B;Hayley Williams",
+                "title": "Airplanes (feat. Hayley Williams of Paramore)"
+            },
+            {
+                "artist": "Lesley Gore",
+                "title": "It's My Party"
+            },
+            {
+                "artist": "Aerosmith",
+                "title": "Cryin'"
+            },
+            {
+                "artist": "Hősök;Halott Pénz",
+                "title": "Több türelem"
+            },
+            {
+                "artist": "Veca Janicsák",
+                "title": "Labirintus"
+            },
+            {
+                "artist": "Groovehouse",
+                "title": "Hajnal"
+            },
+            {
+                "artist": "Rúzsa Magdolna",
+                "title": "Hazatalálsz"
+            },
+            {
+                "artist": "Zámbó Jimmy",
+                "title": "Dalban mondom el"
+            },
+            {
+                "artist": "Simon & Garfunkel",
+                "title": "The Sound of Silence"
+            },
+            {
+                "artist": "Pa-Dö-Dö",
+                "title": "Kiabálj!"
+            },
+            {
+                "artist": "Loona",
+                "title": "Vamos a la Playa - Radio Edit"
+            },
+            {
+                "artist": "Demjen Ferenc",
+                "title": "Hogyan tudnék élni nélküled"
+            },
+            {
+                "artist": "EDDA Művek",
+                "title": "Álmodtam egy világot"
+            },
+            {
+                "artist": "Emergency House",
+                "title": "Dübörög a ház"
+            },
+            {
+                "artist": "The White Stripes",
+                "title": "Seven Nation Army"
+            },
+            {
+                "artist": "Robbie Williams",
+                "title": "Rock DJ"
+            },
+            {
+                "artist": "Rudimental;Jess Glynne;Macklemore;Dan Caplen",
+                "title": "These Days (feat. Jess Glynne, Macklemore & Dan Caplen)"
+            },
+            {
+                "artist": "Benny Benassi;The Biz",
+                "title": "Satisfaction - Original Mix"
+            },
+            {
+                "artist": "Patti Smith",
+                "title": "Because the Night"
+            },
+            {
+                "artist": "Flo Rida",
+                "title": "Whistle"
+            },
+            {
+                "artist": "Szinetár Dóra",
+                "title": "Mindenhol"
+            },
+            {
+                "artist": "Quimby",
+                "title": "Ajjajjaj"
+            },
+            {
+                "artist": "V-Tech",
+                "title": "Éjfél Után"
+            },
+            {
+                "artist": "Sonny & Cher",
+                "title": "The Beat Goes On"
+            },
+            {
+                "artist": "Ferenc Demjén",
+                "title": "Szerelem első vérig"
+            },
+            {
+                "artist": "Bon-Bon",
+                "title": "Valami Amerika"
+            },
+            {
+                "artist": "Madonna",
+                "title": "Like a Virgin"
+            },
+            {
+                "artist": "Roxette",
+                "title": "Sleeping In My Car"
+            },
+            {
+                "artist": "Christie",
+                "title": "Yellow River"
+            },
+            {
+                "artist": "ABBA",
+                "title": "Money, Money, Money"
+            },
+            {
+                "artist": "Follow The Flow",
+                "title": "Szélcsend"
+            },
+            {
+                "artist": "Wellhello",
+                "title": "Nem Olyan Lány"
+            },
+            {
+                "artist": "Sarolta Zalatnay",
+                "title": "Nem vagyok én apáca"
+            },
+            {
+                "artist": "Kungs",
+                "title": "Never Going Home"
+            },
+            {
+                "artist": "Ike & Tina Turner",
+                "title": "Nutbush City Limits"
+            },
+            {
+                "artist": "Don Lore V",
+                "title": "Danza Kuduro - Original Mix"
+            },
+            {
+                "artist": "MAGIC!",
+                "title": "Rude"
+            },
+            {
+                "artist": "Village People",
+                "title": "YMCA - Original Version 1978"
+            },
+            {
+                "artist": "Elton John;Kiki Dee",
+                "title": "Don't Go Breaking My Heart"
+            },
+            {
+                "artist": "Panic! At The Disco",
+                "title": "High Hopes"
+            },
+            {
+                "artist": "Avicii",
+                "title": "Wake Me Up"
+            },
+            {
+                "artist": "The Nolans",
+                "title": "I'm in the Mood for Dancing"
+            },
+            {
+                "artist": "Horváth Tamás;RAUL;Misshmusic",
+                "title": "Beléd Estem"
+            },
+            {
+                "artist": "The Rolling Stones",
+                "title": "Angie - Remastered 2009"
+            },
+            {
+                "artist": "iNi Kamoze",
+                "title": "Here Comes the Hotstepper"
+            },
+            {
+                "artist": "Pixa;Lola;PUMPED GABO;Koósz Milán",
+                "title": "Hallja meg a világ"
+            },
+            {
+                "artist": "Diana Ross",
+                "title": "I'm Coming Out"
+            },
+            {
+                "artist": "The Pussycat Dolls;Busta Rhymes",
+                "title": "Don't Cha"
+            },
+            {
+                "artist": "Take That",
+                "title": "Back for Good - Radio Mix"
+            },
+            {
+                "artist": "MC Hammer",
+                "title": "U Can't Touch This"
+            },
+            {
+                "artist": "Bruno Mars",
+                "title": "Just the Way You Are"
+            },
+            {
+                "artist": "Edward Maya;Vika Jigulina",
+                "title": "Stereo Love"
+            },
+            {
+                "artist": "TNT",
+                "title": "Titkos üzenet"
+            },
+            {
+                "artist": "Bloodhound Gang",
+                "title": "The Bad Touch"
+            },
+            {
+                "artist": "Krisz Rudolf",
+                "title": "Homokba Rajzolt Szerelem"
+            },
+            {
+                "artist": "AC/DC",
+                "title": "Thunderstruck"
+            },
+            {
+                "artist": "VALMAR;Manuel",
+                "title": "Éget a nap"
+            },
+            {
+                "artist": "Hip Hop Boyz",
+                "title": "Megbántottak REMIX"
+            },
+            {
+                "artist": "Spin Doctors",
+                "title": "Two Princes"
+            },
+            {
+                "artist": "Ibolya Oláh",
+                "title": "Magyarország"
+            },
+            {
+                "artist": "Crystal",
+                "title": "TE VAGY A JEL"
+            },
+            {
+                "artist": "V-Tech",
+                "title": "Homokba Írt Szerelem"
+            },
+            {
+                "artist": "The Ronettes",
+                "title": "Be My Baby"
+            },
+            {
+                "artist": "Michael Gray",
+                "title": "The Weekend - Radio Edit"
+            },
+            {
+                "artist": "ABBA",
+                "title": "Mamma Mia"
+            },
+            {
+                "artist": "The Jackson 5",
+                "title": "ABC"
+            },
+            {
+                "artist": "Azahriah",
+                "title": "3korty"
+            },
+            {
+                "artist": "Manuel;Azahriah",
+                "title": "Toxic"
+            },
+            {
+                "artist": "Galantis",
+                "title": "No Money"
+            },
+            {
+                "artist": "Daddy Yankee;Snow",
+                "title": "Con Calma"
+            },
+            {
+                "artist": "Justin Timberlake;Timbaland",
+                "title": "SexyBack (feat. Timbaland)"
+            },
+            {
+                "artist": "Leona Lewis",
+                "title": "Bleeding Love"
+            },
+            {
+                "artist": "Bikini",
+                "title": "Mielott elmegyek"
+            },
+            {
+                "artist": "R Go",
+                "title": "Szeretlek is + nem is"
+            },
+            {
+                "artist": "The Kid LAROI;Justin Bieber",
+                "title": "STAY (with Justin Bieber)"
+            },
+            {
+                "artist": "Hooligans",
+                "title": "Királylány"
+            },
+            {
+                "artist": "Gala;Molella;Phil Jay",
+                "title": "Freed From Desire"
+            },
+            {
+                "artist": "Olivia Newton-John",
+                "title": "Physical - Remastered 2021"
+            },
+            {
+                "artist": "Barbra Streisand",
+                "title": "Woman In Love"
+            },
+            {
+                "artist": "Michael Jackson",
+                "title": "Billie Jean"
+            },
+            {
+                "artist": "The Communards;Sarah Jane Morris",
+                "title": "Don't Leave Me This Way (with Sarah Jane Morris)"
+            },
+            {
+                "artist": "Lotfi Begi;Hevesi Tamás",
+                "title": "Ezt egy életen át kell játszani"
+            },
+            {
+                "artist": "Tátrai Band",
+                "title": "A küszöbön túl"
+            },
+            {
+                "artist": "Republic",
+                "title": "Szállj el kismadár"
+            },
+            {
+                "artist": "Iggy Pop",
+                "title": "The Passenger"
+            },
+            {
+                "artist": "One Direction",
+                "title": "Story of My Life"
+            },
+            {
+                "artist": "Ákos",
+                "title": "Ilyenek voltunk"
+            },
+            {
+                "artist": "Fiesta",
+                "title": "Angelina"
+            },
+            {
+                "artist": "Wellhello",
+                "title": "Apuveddmeg"
+            },
+            {
+                "artist": "will.i.am;Britney Spears",
+                "title": "Scream & Shout"
+            },
+            {
+                "artist": "The Cardigans",
+                "title": "Lovefool"
+            },
+            {
+                "artist": "Bonnie Tyler",
+                "title": "Holding Out for a Hero - From \"Footloose\" Soundtrack"
+            },
+            {
+                "artist": "Calvin Harris",
+                "title": "Summer"
+            },
+            {
+                "artist": "Exotic",
+                "title": "Nézz rám Tizedes"
+            },
+            {
+                "artist": "Péter Máté",
+                "title": "Zene nélkül mit érek én?"
+            },
+            {
+                "artist": "Meghan Trainor",
+                "title": "Made You Look"
+            },
+            {
+                "artist": "Kelis",
+                "title": "Milkshake"
+            },
+            {
+                "artist": "Cascada",
+                "title": "Evacuate The Dancefloor - Radio Edit"
+            },
+            {
+                "artist": "Halott Pénz",
+                "title": "Darabokra Törted A Szívem"
+            },
+            {
+                "artist": "Adele",
+                "title": "Hello"
+            },
+            {
+                "artist": "Christina Aguilera",
+                "title": "Beautiful"
+            },
+            {
+                "artist": "PSY",
+                "title": "Gangnam Style (강남스타일)"
+            },
+            {
+                "artist": "Calvin Harris;Pharrell Williams;Katy Perry;Big Sean;Funk Wav",
+                "title": "Feels (feat. Pharrell Williams, Katy Perry & Big Sean)"
+            },
+            {
+                "artist": "Ámokfutók",
+                "title": "Van valami"
+            },
+            {
+                "artist": "Robbie Williams",
+                "title": "Angels"
+            },
+            {
+                "artist": "Bereczki Zoltán",
+                "title": "Kerek Egész"
+            },
+            {
+                "artist": "September",
+                "title": "Cry for You - UK Radio Edit"
+            },
+            {
+                "artist": "Neoton Familia",
+                "title": "Santa Maria"
+            },
+            {
+                "artist": "Szécsi Pál",
+                "title": "Carolina"
+            },
+            {
+                "artist": "Atomic Kitten",
+                "title": "Whole Again"
+            },
+            {
+                "artist": "Vengaboys",
+                "title": "Boom, Boom, Boom, Boom!!"
+            },
+            {
+                "artist": "Charlie Puth;Selena Gomez",
+                "title": "We Don't Talk Anymore (feat. Selena Gomez)"
+            },
+            {
+                "artist": "Rita Ora",
+                "title": "Anywhere"
+            },
+            {
+                "artist": "David Guetta;Kelly Rowland",
+                "title": "When Love Takes Over (feat. Kelly Rowland)"
+            },
+            {
+                "artist": "Ellie Goulding",
+                "title": "Love Me Like You Do - From \"Fifty Shades Of Grey\""
+            },
+            {
+                "artist": "Beyoncé",
+                "title": "Single Ladies (Put a Ring on It)"
+            },
+            {
+                "artist": "Pápai Joci",
+                "title": "Origo"
+            },
+            {
+                "artist": "R.E.M.",
+                "title": "Losing My Religion"
+            },
+            {
+                "artist": "Koncz Zsuzsa",
+                "title": "Ha én rózsa volnék"
+            },
+            {
+                "artist": "Zanzibár",
+                "title": "Szólj Már"
+            },
+            {
+                "artist": "Rapülök",
+                "title": "Áj lav jú"
+            },
+            {
+                "artist": "Jonas Brothers",
+                "title": "Sucker"
+            },
+            {
+                "artist": "Happy Gang",
+                "title": "Fiatal Szerelem"
+            },
+            {
+                "artist": "Soho Party",
+                "title": "Gyere Táncolj! - Radio Edit"
+            },
+            {
+                "artist": "Rúzsa Magdolna",
+                "title": "Lesz, ahogy lesz"
+            },
+            {
+                "artist": "Hungária",
+                "title": "Szerelemre hívlak"
+            },
+            {
+                "artist": "United",
+                "title": "Keserû Méz"
+            },
+            {
+                "artist": "Zucchero",
+                "title": "Baila (Sexy Thing)"
+            },
+            {
+                "artist": "The Zombies",
+                "title": "Time of the Season - Mono Version"
+            },
+            {
+                "artist": "Eminem;Dido",
+                "title": "Stan"
+            },
+            {
+                "artist": "Tankcsapda",
+                "title": "Mennyország Tourist"
+            },
+            {
+                "artist": "Gwen Stefani",
+                "title": "What You Waiting For?"
+            },
+            {
+                "artist": "Alicia Keys",
+                "title": "Girl on Fire"
+            },
+            {
+                "artist": "Sean Kingston",
+                "title": "Beautiful Girls"
+            },
+            {
+                "artist": "Császár Előd",
+                "title": "Megtalállak még"
+            },
+            {
+                "artist": "Deep Blue Something",
+                "title": "Breakfast At Tiffany's"
+            },
+            {
+                "artist": "Shakira",
+                "title": "Whenever, Wherever"
+            },
+            {
+                "artist": "Zanzibár",
+                "title": "Szerelemrol Szó Sem Volt"
+            },
+            {
+                "artist": "Cyndi Lauper",
+                "title": "Girls Just Want to Have Fun"
+            },
+            {
+                "artist": "George Michael",
+                "title": "Too Funky - Single Edit"
+            },
+            {
+                "artist": "DJ Snake;Lil Jon",
+                "title": "Turn Down for What"
+            },
+            {
+                "artist": "KC & The Sunshine Band",
+                "title": "That's the Way (I Like It) - 2004 Remaster"
+            },
+            {
+                "artist": "Vengaboys",
+                "title": "We’re Going to Ibiza!"
+            },
+            {
+                "artist": "Scissor Sisters",
+                "title": "I Don't Feel Like Dancin'"
+            },
+            {
+                "artist": "Ámokfutók",
+                "title": "Szomorú szamuráj"
+            },
+            {
+                "artist": "Klari Katona",
+                "title": "Savanyú a csokoládé"
+            },
+            {
+                "artist": "Earth, Wind & Fire",
+                "title": "September"
+            },
+            {
+                "artist": "Clean Bandit;Anne-Marie;Sean Paul",
+                "title": "Rockabye (feat. Sean Paul & Anne-Marie)"
+            },
+            {
+                "artist": "The Rubettes",
+                "title": "Sugar Baby Love"
+            },
+            {
+                "artist": "Anastacia",
+                "title": "I'm Outta Love - Radio Edit"
+            },
+            {
+                "artist": "Majka;Curtis;Blr",
+                "title": "Belehalok"
+            },
+            {
+                "artist": "IHÁSZ GÁBOR",
+                "title": "Múlnak A Gyermekévek"
+            },
+            {
+                "artist": "Shakira;Wyclef Jean",
+                "title": "Hips Don't Lie (feat. Wyclef Jean)"
+            },
+            {
+                "artist": "Bobby McFerrin",
+                "title": "Don't Worry Be Happy"
+            },
+            {
+                "artist": "Sia",
+                "title": "Chandelier"
+            },
+            {
+                "artist": "Bonanza Banzai",
+                "title": "Induljon a banzáj!"
+            },
+            {
+                "artist": "Karthago",
+                "title": "Requiem"
+            },
+            {
+                "artist": "Kiraly Linda",
+                "title": "Szerelem Utolsó Vérig"
+            },
+            {
+                "artist": "Eric Carmen",
+                "title": "All By Myself"
+            },
+            {
+                "artist": "Baby Sisters",
+                "title": "Szeresd a testem"
+            },
+            {
+                "artist": "Wolf Kati",
+                "title": "Szerelem, miért múlsz?"
+            },
+            {
+                "artist": "Depeche Mode",
+                "title": "Enjoy the Silence"
+            },
+            {
+                "artist": "Kate Ryan",
+                "title": "Ella Elle L A"
+            },
+            {
+                "artist": "The Mamas & The Papas",
+                "title": "California Dreamin'"
+            },
+            {
+                "artist": "Punnany Massif",
+                "title": "Élvezd"
+            },
+            {
+                "artist": "Beton.Hofi;Hundred Sins",
+                "title": "BAGIRA"
+            },
+            {
+                "artist": "Zalatnay Sarolta;Kökény Attila",
+                "title": "Hosszú forró nyár"
+            },
+            {
+                "artist": "Bob Sinclar;Gary Pine",
+                "title": "Love Generation"
+            },
+            {
+                "artist": "Michael Jackson;Janet Jackson",
+                "title": "Scream"
+            },
+            {
+                "artist": "Alex Gaudino",
+                "title": "Destination Calabria (Feat. Crystal Waters) - Original Radio Edit"
+            },
+            {
+                "artist": "M People",
+                "title": "Moving on Up"
+            },
+            {
+                "artist": "Horváth Tamás;Kowalsky Meg A Vega",
+                "title": "Fehér holló"
+            },
+            {
+                "artist": "Elefánt",
+                "title": "Kár"
+            },
+            {
+                "artist": "Apostol",
+                "title": "Nehéz a boldogságtól búcsút venni"
+            },
+            {
+                "artist": "Crystal",
+                "title": "Két Utazó"
+            },
+            {
+                "artist": "Harry Styles",
+                "title": "Watermelon Sugar"
+            },
+            {
+                "artist": "Szandi",
+                "title": "Stupid Cupid: Nyugi doki! (Stupid Cupid) [Sung in Hungarian]"
+            },
+            {
+                "artist": "Fluor",
+                "title": "Mizu"
+            },
+            {
+                "artist": "KISS",
+                "title": "I Was Made For Lovin' You"
+            },
+            {
+                "artist": "The Righteous Brothers",
+                "title": "Unchained Melody"
+            },
+            {
+                "artist": "Kozmix",
+                "title": "Angyal"
+            },
+            {
+                "artist": "Gnarls Barkley;CeeLo Green;Danger Mouse",
+                "title": "Crazy"
+            },
+            {
+                "artist": "Katy Perry",
+                "title": "I Kissed A Girl"
+            },
+            {
+                "artist": "Right Said Fred",
+                "title": "I'm Too Sexy"
+            },
+            {
+                "artist": "LMFAO",
+                "title": "Sexy And I Know It"
+            },
+            {
+                "artist": "Magna Cum Laude",
+                "title": "Pálinka dal"
+            },
+            {
+                "artist": "Måneskin",
+                "title": "I WANNA BE YOUR SLAVE"
+            },
+            {
+                "artist": "Judit Szücs",
+                "title": "Táncolj még"
+            },
+            {
+                "artist": "John Paul Young",
+                "title": "Love Is In The Air"
+            },
+            {
+                "artist": "Carly Rae Jepsen",
+                "title": "Call Me Maybe"
+            },
+            {
+                "artist": "Bonanza Banzai",
+                "title": "A jel"
+            },
+            {
+                "artist": "Klari Katona",
+                "title": "Vigyél el"
+            },
+            {
+                "artist": "Rod Stewart",
+                "title": "Da Ya Think I'm Sexy?"
+            },
+            {
+                "artist": "Europe",
+                "title": "The Final Countdown"
+            },
+            {
+                "artist": "The Pointer Sisters",
+                "title": "I'm So Excited"
+            },
+            {
+                "artist": "Justin Bieber;Ludacris",
+                "title": "Baby"
+            },
+            {
+                "artist": "The Temptations",
+                "title": "My Girl"
+            },
+            {
+                "artist": "Survivor",
+                "title": "Eye of the Tiger"
+            },
+            {
+                "artist": "The Weather Girls",
+                "title": "It's Raining Men"
+            },
+            {
+                "artist": "Korda György",
+                "title": "Reptér"
+            },
+            {
+                "artist": "ByeAlex és a Slepp",
+                "title": "Csokko"
+            },
+            {
+                "artist": "Soulwave;Szakács Gergő",
+                "title": "Minden Tévedésem"
+            },
+            {
+                "artist": "Queen",
+                "title": "Another One Bites The Dust - Remastered 2011"
+            },
+            {
+                "artist": "Rácz Gergő",
+                "title": "Csak Állj Mellém!"
+            },
+            {
+                "artist": "Stevie Wonder",
+                "title": "Part-Time Lover"
+            },
+            {
+                "artist": "ByeAlex",
+                "title": "Kedvesem"
+            },
+            {
+                "artist": "Bon-Bon",
+                "title": "A Sexepilem"
+            },
+            {
+                "artist": "Bon Jovi",
+                "title": "Livin' On A Prayer"
+            },
+            {
+                "artist": "Azahriah;DESH",
+                "title": "Mind1"
+            },
+            {
+                "artist": "Dzsúdló;Lil Frakk",
+                "title": "Lej"
+            },
+            {
+                "artist": "DR BRS;Berkes Olivér",
+                "title": "Évszakok"
+            },
+            {
+                "artist": "Halott Pénz;Diaz;Mentha",
+                "title": "Hello Lányok"
+            },
+            {
+                "artist": "Mark Ronson;Bruno Mars",
+                "title": "Uptown Funk (feat. Bruno Mars)"
+            },
+            {
+                "artist": "Locomotiv GT",
+                "title": "Egy elfelejtett szó"
+            },
+            {
+                "artist": "Varga Viktor",
+                "title": "Lehet zöld az ég..."
+            },
+            {
+                "artist": "Hungária",
+                "title": "Csókkirály"
+            },
+            {
+                "artist": "Rockwell",
+                "title": "Somebody's Watching Me"
+            },
+            {
+                "artist": "Rihanna;JAY-Z",
+                "title": "Umbrella"
+            },
+            {
+                "artist": "Tracy Chapman",
+                "title": "Fast Car"
+            },
+            {
+                "artist": "Rácz Gergő;Orsovai Reni",
+                "title": "Mostantól"
+            },
+            {
+                "artist": "Korda György",
+                "title": "Lady N"
+            },
+            {
+                "artist": "David Bowie",
+                "title": "Starman - 2012 Remaster"
+            },
+            {
+                "artist": "Madness",
+                "title": "Our House"
+            },
+            {
+                "artist": "Donna Summer",
+                "title": "Hot Stuff"
+            },
+            {
+                "artist": "Rezsö Soltész",
+                "title": "Szóljon hangosan az ének"
+            },
+            {
+                "artist": "Zsuzsa Koncz",
+                "title": "Keresem a szót"
+            },
+            {
+                "artist": "Honeybeast",
+                "title": "A Legnagyobb Hős"
+            }
+        ];
+
+        const bingoSongs = [
+            {
+                "artist": "The Police",
+                "title": "Message In A Bottle"
+            },
+            {
+                "artist": "Imagine Dragons",
+                "title": "Demons"
+            },
+            {
+                "artist": "Gorillaz;Del The Funky Homosapien",
+                "title": "Clint Eastwood"
+            },
+            {
+                "artist": "Sade",
+                "title": "Smooth Operator - Single Version"
+            },
+            {
+                "artist": "David Guetta;AFROJACK;Bebe Rexha;Nicki Minaj",
+                "title": "Hey Mama (feat. Nicki Minaj, Bebe Rexha & Afrojack)"
+            },
+            {
+                "artist": "Andre Hazes",
+                "title": "Een Beetje Verliefd"
+            },
+            {
+                "artist": "Eurythmics;Annie Lennox;Dave Stewart",
+                "title": "There Must Be an Angel (Playing With My Heart)"
+            },
+            {
+                "artist": "Madcon",
+                "title": "Beggin (original version)"
+            },
+            {
+                "artist": "The Dandy Warhols",
+                "title": "Bohemian Like You"
+            },
+            {
+                "artist": "The Fray",
+                "title": "How to Save a Life"
+            },
+            {
+                "artist": "Anouk",
+                "title": "Nobody's Wife"
+            },
+            {
+                "artist": "ATB;Topic;A7S",
+                "title": "Your Love (9PM)"
+            },
+            {
+                "artist": "Ronnie Flex;Maan",
+                "title": "Blijf Bij Mij"
+            },
+            {
+                "artist": "Frenna;Jonna Fraser;Emms",
+                "title": "My Love"
+            },
+            {
+                "artist": "Keith Sweat",
+                "title": "Twisted"
+            },
+            {
+                "artist": "S10",
+                "title": "De Diepte"
+            },
+            {
+                "artist": "Shaggy",
+                "title": "Boombastic"
+            },
+            {
+                "artist": "Jan Smit",
+                "title": "Ik Zing Dit Lied Voor Jou Alleen"
+            },
+            {
+                "artist": "Robbie Williams",
+                "title": "Candy"
+            },
+            {
+                "artist": "Kelly Clarkson",
+                "title": "Stronger (What Doesn't Kill You)"
+            },
+            {
+                "artist": "The Rasmus",
+                "title": "In the Shadows"
+            },
+            {
+                "artist": "Pitbull;AFROJACK;Ne-Yo;Nayer",
+                "title": "Give Me Everything (feat. Nayer)"
+            },
+            {
+                "artist": "Ace of Base",
+                "title": "Beautiful Life"
+            },
+            {
+                "artist": "Bruno Mars",
+                "title": "Locked out of Heaven"
+            },
+            {
+                "artist": "Rage Against The Machine",
+                "title": "Killing In The Name"
+            },
+            {
+                "artist": "Cyndi Lauper",
+                "title": "Time After Time"
+            },
+            {
+                "artist": "Ann Lee",
+                "title": "2 Times - Original"
+            },
+            {
+                "artist": "The Rolling Stones",
+                "title": "Sympathy For The Devil"
+            },
+            {
+                "artist": "Maroon 5",
+                "title": "Animals"
+            },
+            {
+                "artist": "Frans Bauer",
+                "title": "Als Sterren Aan De Hemel Staan"
+            },
+            {
+                "artist": "Desiigner",
+                "title": "Panda"
+            },
+            {
+                "artist": "Flo Rida",
+                "title": "Whistle"
+            },
+            {
+                "artist": "The Ting Tings",
+                "title": "That's Not My Name"
+            },
+            {
+                "artist": "Lenny Kravitz",
+                "title": "Are You Gonna Go My Way"
+            },
+            {
+                "artist": "FLEMMING",
+                "title": "Amsterdam"
+            },
+            {
+                "artist": "Danny De Munk",
+                "title": "Ik Voel Me Zo Verdomd Alleen"
+            },
+            {
+                "artist": "Rita Ora",
+                "title": "Let You Love Me"
+            },
+            {
+                "artist": "Bob Dylan",
+                "title": "Like a Rolling Stone"
+            },
+            {
+                "artist": "The Cardigans",
+                "title": "My Favourite Game"
+            },
+            {
+                "artist": "B-Brave;Sevn Alias",
+                "title": "One Night Stand (feat. Sevn Alias)"
+            },
+            {
+                "artist": "TLC",
+                "title": "No Scrubs"
+            },
+            {
+                "artist": "Taylor Swift",
+                "title": "Blank Space"
+            },
+            {
+                "artist": "The Supremes",
+                "title": "You Can't Hurry Love"
+            },
+            {
+                "artist": "Village People",
+                "title": "In the Navy - Original Version 1979"
+            },
+            {
+                "artist": "The Corrs",
+                "title": "Breathless"
+            },
+            {
+                "artist": "George Harrison",
+                "title": "My Sweet Lord - 2014 Remaster"
+            },
+            {
+                "artist": "Metallica",
+                "title": "Nothing Else Matters"
+            },
+            {
+                "artist": "Phil Collins",
+                "title": "In The Air Tonight - 2015 Remastered"
+            },
+            {
+                "artist": "Grad Damen",
+                "title": "Selina"
+            },
+            {
+                "artist": "Janet Jackson",
+                "title": "Together Again"
+            },
+            {
+                "artist": "Peter Blanker",
+                "title": "'t Is moeilijk bescheiden te blijven"
+            },
+            {
+                "artist": "Sjaak",
+                "title": "Trompetisto"
+            },
+            {
+                "artist": "Calvin Harris;Pharrell Williams;Katy Perry;Big Sean;Funk Wav",
+                "title": "Feels (feat. Pharrell Williams, Katy Perry & Big Sean)"
+            },
+            {
+                "artist": "Elton John",
+                "title": "I'm Still Standing"
+            },
+            {
+                "artist": "Sam Smith",
+                "title": "Stay With Me"
+            },
+            {
+                "artist": "Gerard Joling",
+                "title": "Love Is In Your Eyes"
+            },
+            {
+                "artist": "Hero",
+                "title": "Toen Ik Je Zag - Single Version"
+            },
+            {
+                "artist": "James Blunt",
+                "title": "1973"
+            },
+            {
+                "artist": "*NSYNC",
+                "title": "It's Gonna Be Me"
+            },
+            {
+                "artist": "OneRepublic",
+                "title": "I Ain't Worried"
+            },
+            {
+                "artist": "Lewis Capaldi",
+                "title": "Before You Go"
+            },
+            {
+                "artist": "Goldband",
+                "title": "Noodgeval"
+            },
+            {
+                "artist": "Dolly Dots",
+                "title": "Love Me Just a Little Bit More (Totally Hooked on You)"
+            },
+            {
+                "artist": "Toni Braxton",
+                "title": "You're Makin' Me High"
+            },
+            {
+                "artist": "Bronski Beat",
+                "title": "Why ?"
+            },
+            {
+                "artist": "Supergrass",
+                "title": "Alright"
+            },
+            {
+                "artist": "Duran Duran",
+                "title": "Ordinary World"
+            },
+            {
+                "artist": "Beyoncé",
+                "title": "Halo"
+            },
+            {
+                "artist": "New Kids On The Block",
+                "title": "Step by Step"
+            },
+            {
+                "artist": "Within Temptation",
+                "title": "Ice Queen - Radio Edit"
+            },
+            {
+                "artist": "Kosheen",
+                "title": "Hide U"
+            },
+            {
+                "artist": "Rotterdam Termination Source",
+                "title": "Poing!"
+            },
+            {
+                "artist": "Diggy Dex;JW Roy",
+                "title": "Treur Niet (Ode Aan Het Leven)"
+            },
+            {
+                "artist": "Jason Derulo;2 Chainz",
+                "title": "Talk Dirty (feat. 2 Chainz)"
+            },
+            {
+                "artist": "De Dijk",
+                "title": "Nergens Goed Voor"
+            },
+            {
+                "artist": "Clean Bandit;Jess Glynne",
+                "title": "Rather Be (feat. Jess Glynne)"
+            },
+            {
+                "artist": "Of Monsters and Men",
+                "title": "Little Talks"
+            },
+            {
+                "artist": "No Doubt",
+                "title": "Just A Girl"
+            },
+            {
+                "artist": "Bruce Springsteen",
+                "title": "Hungry Heart"
+            },
+            {
+                "artist": "Ricky Martin",
+                "title": "She Bangs - English Version"
+            },
+            {
+                "artist": "Sandy",
+                "title": "Ik Ben Verliefd Op John Travolta"
+            },
+            {
+                "artist": "Aaliyah",
+                "title": "Try Again"
+            },
+            {
+                "artist": "Billy Crawford",
+                "title": "Trackin'"
+            },
+            {
+                "artist": "Vader Abraham;Boer Koekoek",
+                "title": "Den Uyl Is In Den Olie"
+            },
+            {
+                "artist": "Sandra & Andres",
+                "title": "Als Het Om De Liefde Gaat"
+            },
+            {
+                "artist": "RONDÉ",
+                "title": "Hard To Say Goodbye"
+            },
+            {
+                "artist": "Cream",
+                "title": "Sunshine Of Your Love"
+            },
+            {
+                "artist": "Oasis",
+                "title": "Don't Look Back In Anger"
+            },
+            {
+                "artist": "The Opposites",
+                "title": "Slaap"
+            },
+            {
+                "artist": "Mike Posner;Seeb",
+                "title": "I Took A Pill In Ibiza - Seeb Remix"
+            },
+            {
+                "artist": "Krezip",
+                "title": "I Would Stay"
+            },
+            {
+                "artist": "Tom Jones",
+                "title": "Delilah"
+            },
+            {
+                "artist": "Rihanna;Calvin Harris",
+                "title": "We Found Love"
+            },
+            {
+                "artist": "Chef'Special",
+                "title": "Afraid Of The Dark"
+            },
+            {
+                "artist": "Madonna",
+                "title": "Material Girl"
+            },
+            {
+                "artist": "James Brown;The Original J.B.s",
+                "title": "Get Up I Feel Like Being Like A Sex Machine, Pts. 1 & 2"
+            },
+            {
+                "artist": "Billy Idol",
+                "title": "Rebel Yell"
+            },
+            {
+                "artist": "U2",
+                "title": "I Still Haven't Found What I'm Looking For"
+            },
+            {
+                "artist": "Hanny",
+                "title": "Maar vanavond heb ik hoofdpijn"
+            },
+            {
+                "artist": "Madness",
+                "title": "It Must Be Love"
+            },
+            {
+                "artist": "Rod Stewart",
+                "title": "Baby Jane - 2008 Remaster"
+            },
+            {
+                "artist": "Hind",
+                "title": "Summer All over Again"
+            },
+            {
+                "artist": "Rosa Linn",
+                "title": "SNAP"
+            },
+            {
+                "artist": "EMF",
+                "title": "Unbelievable"
+            },
+            {
+                "artist": "Golden Earring",
+                "title": "Twilight Zone - Single Version"
+            },
+            {
+                "artist": "Studio Killers",
+                "title": "Ode to the Bouncer"
+            },
+            {
+                "artist": "Vanessa Paradis",
+                "title": "Be My Baby"
+            },
+            {
+                "artist": "Kylie Minogue",
+                "title": "Padam Padam"
+            },
+            {
+                "artist": "Michael Sembello",
+                "title": "Maniac"
+            },
+            {
+                "artist": "MC Miker & DJ Sven",
+                "title": "Holiday Rap - Version 1986"
+            },
+            {
+                "artist": "The Fratellis",
+                "title": "Chelsea Dagger"
+            },
+            {
+                "artist": "Alanis Morissette",
+                "title": "You Oughta Know - 2015 Remaster"
+            },
+            {
+                "artist": "The Script;will.i.am",
+                "title": "Hall of Fame (feat. will.i.am)"
+            },
+            {
+                "artist": "Sugababes",
+                "title": "Push The Button"
+            },
+            {
+                "artist": "Olivia Rodrigo",
+                "title": "good 4 u"
+            },
+            {
+                "artist": "Jamelia",
+                "title": "Superstar"
+            },
+            {
+                "artist": "Ten Sharp",
+                "title": "You"
+            },
+            {
+                "artist": "Marshmello;Bastille",
+                "title": "Happier"
+            },
+            {
+                "artist": "Michael Jackson",
+                "title": "Beat It"
+            },
+            {
+                "artist": "Rudimental;John Newman",
+                "title": "Feel the Love (feat. John Newman)"
+            },
+            {
+                "artist": "Martin Solveig;Dragonette",
+                "title": "Hello"
+            },
+            {
+                "artist": "City To City",
+                "title": "The Road Ahead (Miles Of The Unknown)"
+            },
+            {
+                "artist": "Blondie",
+                "title": "Denis"
+            },
+            {
+                "artist": "The Pussycat Dolls",
+                "title": "When I Grow Up"
+            },
+            {
+                "artist": "Nakatomi",
+                "title": "Children Of The Night - Radio Edit"
+            },
+            {
+                "artist": "Willeke Alberti",
+                "title": "Carolientje"
+            },
+            {
+                "artist": "Annie Lennox",
+                "title": "No More \"I Love You's\""
+            },
+            {
+                "artist": "JAY-Z;Alicia Keys",
+                "title": "Empire State Of Mind"
+            },
+            {
+                "artist": "Amy Winehouse",
+                "title": "Back To Black"
+            },
+            {
+                "artist": "Beck",
+                "title": "Loser"
+            },
+            {
+                "artist": "Lisa Stansfield;Ian Devaney;Andy Morris",
+                "title": "All Around the World - Remastered"
+            },
+            {
+                "artist": "Pet Shop Boys",
+                "title": "Always on My Mind"
+            },
+            {
+                "artist": "Spandau Ballet",
+                "title": "True - 2003 Remaster"
+            },
+            {
+                "artist": "Adele",
+                "title": "Easy On Me"
+            },
+            {
+                "artist": "The Weeknd;Kendrick Lamar",
+                "title": "Pray For Me"
+            },
+            {
+                "artist": "Boney M.",
+                "title": "Rasputin"
+            },
+            {
+                "artist": "Seal",
+                "title": "Crazy"
+            },
+            {
+                "artist": "Sita",
+                "title": "Happy"
+            },
+            {
+                "artist": "Demis",
+                "title": "Ga Dan"
+            },
+            {
+                "artist": "Justin Bieber",
+                "title": "Love Yourself"
+            },
+            {
+                "artist": "P!nk",
+                "title": "So What"
+            },
+            {
+                "artist": "Ricchi E Poveri",
+                "title": "M'innamoro di te"
+            },
+            {
+                "artist": "Alphaville",
+                "title": "Big in Japan - Single Version; 2019 Remaster"
+            },
+            {
+                "artist": "Suzan & Freek;Snelle",
+                "title": "De Overkant"
+            },
+            {
+                "artist": "Charlie Puth",
+                "title": "Attention"
+            },
+            {
+                "artist": "Black Eyed Peas",
+                "title": "Let's Get It Started - Spike Mix"
+            },
+            {
+                "artist": "André van Duin",
+                "title": "Het Pizzalied"
+            },
+            {
+                "artist": "Ed Sheeran",
+                "title": "Shivers"
+            },
+            {
+                "artist": "Harry Styles",
+                "title": "Late Night Talking"
+            },
+            {
+                "artist": "Kim-Lian",
+                "title": "Teenage Superstar"
+            },
+            {
+                "artist": "Far East Movement;The Cataracs;DEV",
+                "title": "Like A G6"
+            },
+            {
+                "artist": "The Blues Brothers",
+                "title": "Everybody Needs Somebody to Love"
+            },
+            {
+                "artist": "Dua Lipa",
+                "title": "Don't Start Now"
+            },
+            {
+                "artist": "Boudewijn de Groot",
+                "title": "Het Land Van Maas En Waal"
+            },
+            {
+                "artist": "Black Box",
+                "title": "Ride on Time"
+            },
+            {
+                "artist": "Blur",
+                "title": "Girls & Boys"
+            },
+            {
+                "artist": "DJ BoozyWoozy",
+                "title": "Party Affair"
+            },
+            {
+                "artist": "Avicii",
+                "title": "Waiting For Love"
+            },
+            {
+                "artist": "Stevie Wonder",
+                "title": "I Just Called To Say I Love You - Single Version"
+            },
+            {
+                "artist": "Queen",
+                "title": "We Will Rock You"
+            },
+            {
+                "artist": "André van Duin;Het Nederlands Elftal",
+                "title": "Nederland, Die Heeft De Bal"
+            },
+            {
+                "artist": "Frank Sinatra",
+                "title": "My Way"
+            },
+            {
+                "artist": "Taio Cruz;Travie McCoy",
+                "title": "Higher"
+            },
+            {
+                "artist": "Destiny's Child",
+                "title": "Say My Name"
+            },
+            {
+                "artist": "Starmaker",
+                "title": "Damn, I Think I Love You"
+            },
+            {
+                "artist": "The Jacksons",
+                "title": "Blame It on the Boogie"
+            },
+            {
+                "artist": "Chris Isaak",
+                "title": "Wicked Game"
+            },
+            {
+                "artist": "Guns N' Roses",
+                "title": "Paradise City"
+            },
+            {
+                "artist": "Whitney Houston",
+                "title": "Higher Love - 1990 Original Mix"
+            },
+            {
+                "artist": "Backstreet Boys",
+                "title": "Incomplete"
+            },
+            {
+                "artist": "Kinderen voor Kinderen",
+                "title": "Ik Heb Zo Waanzinnig Gedroomd"
+            },
+            {
+                "artist": "Vanilla Ice",
+                "title": "Ice Ice Baby"
+            },
+            {
+                "artist": "Mr. Probz",
+                "title": "Nothing Really Matters"
+            },
+            {
+                "artist": "Mary Mary",
+                "title": "Shackles (Praise You)"
+            },
+            {
+                "artist": "4 Non Blondes",
+                "title": "What's Up?"
+            },
+            {
+                "artist": "DI-RECT",
+                "title": "She"
+            },
+            {
+                "artist": "Christina Aguilera",
+                "title": "Ain't No Other Man"
+            },
+            {
+                "artist": "Boyzone",
+                "title": "No Matter What"
+            },
+            {
+                "artist": "Indeep",
+                "title": "Last Night a D.J. Saved My Life"
+            },
+            {
+                "artist": "AC/DC",
+                "title": "Highway to Hell"
+            },
+            {
+                "artist": "George Michael",
+                "title": "Careless Whisper"
+            },
+            {
+                "artist": "Jonas Brothers",
+                "title": "What A Man Gotta Do"
+            },
+            {
+                "artist": "Albert Hammond",
+                "title": "It Never Rains in Southern California"
+            },
+            {
+                "artist": "Lady Gaga;Beyoncé",
+                "title": "Telephone"
+            },
+            {
+                "artist": "Belinda Carlisle",
+                "title": "Heaven Is A Place On Earth"
+            },
+            {
+                "artist": "David Guetta;Kelly Rowland",
+                "title": "When Love Takes Over (feat. Kelly Rowland)"
+            },
+            {
+                "artist": "GAYLE",
+                "title": "abcdefu"
+            },
+            {
+                "artist": "blink-182",
+                "title": "All The Small Things"
+            },
+            {
+                "artist": "John Lennon",
+                "title": "Imagine - Remastered 2010"
+            },
+            {
+                "artist": "Marianne Weber;Frans Bauer",
+                "title": "De Regenboog"
+            },
+            {
+                "artist": "Alice Deejay",
+                "title": "Better Off Alone"
+            },
+            {
+                "artist": "Youssou N'Dour;Neneh Cherry",
+                "title": "7 Seconds (feat. Neneh Cherry)"
+            },
+            {
+                "artist": "Guus Meeuwis;Vagant",
+                "title": "Het Is Een Nacht... (Levensecht)"
+            },
+            {
+                "artist": "MEDUZA;Goodboys",
+                "title": "Piece Of Your Heart"
+            },
+            {
+                "artist": "The Cranberries",
+                "title": "Ode To My Family"
+            },
+            {
+                "artist": "Bryan Adams",
+                "title": "Have You Ever Really Loved A Woman? - From \"Don Juan DeMarco\" Soundtrack"
+            },
+            {
+                "artist": "Pras;Ol' Dirty Bastard;Mýa",
+                "title": "Ghetto Supastar (That is What You Are) (feat. Ol' Dirty Bastard & Mýa)"
+            },
+            {
+                "artist": "Dido",
+                "title": "Thank You"
+            },
+            {
+                "artist": "Simply Red",
+                "title": "Fairground"
+            },
+            {
+                "artist": "Craig David;Sting",
+                "title": "Rise & Fall (feat. Sting)"
+            },
+            {
+                "artist": "Tate McRae",
+                "title": "greedy"
+            },
+            {
+                "artist": "fun.",
+                "title": "Some Nights"
+            },
+            {
+                "artist": "Veldhuis & Kemper",
+                "title": "Ik Wou Dat Ik Jou Was"
+            },
+            {
+                "artist": "Modern Talking",
+                "title": "Cheri Cheri Lady"
+            },
+            {
+                "artist": "Lasgo",
+                "title": "Something"
+            },
+            {
+                "artist": "M.I.A.",
+                "title": "Paper Planes"
+            },
+            {
+                "artist": "Eminem",
+                "title": "Without Me"
+            },
+            {
+                "artist": "Dire Straits",
+                "title": "Sultans Of Swing"
+            },
+            {
+                "artist": "Ellie Goulding",
+                "title": "Love Me Like You Do"
+            },
+            {
+                "artist": "Boris",
+                "title": "When You Think of Me"
+            },
+            {
+                "artist": "Shawn Mendes",
+                "title": "Treat You Better"
+            },
+            {
+                "artist": "Take That",
+                "title": "Back for Good - Radio Mix"
+            },
+            {
+                "artist": "Leona Lewis",
+                "title": "Better in Time"
+            },
+            {
+                "artist": "ABBA",
+                "title": "Gimme! Gimme! Gimme! (A Man After Midnight)"
+            },
+            {
+                "artist": "Lily Allen",
+                "title": "Fuck You"
+            },
+            {
+                "artist": "The Chainsmokers;Coldplay",
+                "title": "Something Just Like This"
+            },
+            {
+                "artist": "The Alan Parsons Project",
+                "title": "Don't Answer Me"
+            },
+            {
+                "artist": "Rene Klijn",
+                "title": "Mr. Blue"
+            },
+            {
+                "artist": "Timbaland;Keri Hilson;D.O.E.",
+                "title": "The Way I Are"
+            },
+            {
+                "artist": "Justin Timberlake",
+                "title": "Cry Me a River"
+            },
+            {
+                "artist": "Benny Neyman",
+                "title": "Ik Weet Niet Hoe"
+            },
+            {
+                "artist": "Evanescence",
+                "title": "My Immortal"
+            },
+            {
+                "artist": "Nina Simone",
+                "title": "Ain't Got No / I Got Life"
+            },
+            {
+                "artist": "Kris Kross Amsterdam;Antoon;Sigourney K",
+                "title": "Vluchtstrook"
+            },
+            {
+                "artist": "Loreen",
+                "title": "Tattoo"
+            },
+            {
+                "artist": "Anarchic System",
+                "title": "Pop Corn"
+            }
+        ];
+
+        let PlaylistSongs = hunSongs;
+
+
+        // iTunes Search Service
+        const iTunesService = {
+            cachedTracks: [],
+            usedIndices: new Set(),
+
+            async searchTrack(artist, title) {
+                try {
+                    const query = encodeURIComponent(`${artist} ${title}`);
+                    const response = await fetch(
+                        `https://itunes.apple.com/search?term=${query}&media=music&entity=song&limit=5`
+                    );
+
+                    if (!response.ok) {
+                        throw new Error(`iTunes API error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    if (data.results && data.results.length > 0) {
+                        // Find the best match (first result is usually the best)
+                        const track = data.results[0];
+
+                        return {
+                            name: track.trackName,
+                            artist: track.artistName,
+                            year: new Date(track.releaseDate).getFullYear(),
+                            preview_url: track.previewUrl,
+                            album_art: track.artworkUrl100?.replace('100x100', '600x600') // Get higher res
+                        };
+                    }
+
+                    return null;
+                } catch (error) {
+                    console.error('Failed to fetch from iTunes:', error);
+                    return null;
+                }
+            },
+
+            async getRandomTrack() {
+                // If we've used all songs, reset
+                if (this.usedIndices.size >= PlaylistSongs.length) {
+                    this.usedIndices.clear();
+                }
+
+                // Get a random unused song
+                let randomIndex;
+                do {
+                    randomIndex = Math.floor(Math.random() * PlaylistSongs.length);
+                } while (this.usedIndices.has(randomIndex));
+
+                this.usedIndices.add(randomIndex);
+                const song = PlaylistSongs[randomIndex];
+
+                // Search for it in iTunes
+                const track = await this.searchTrack(song.artist, song.title);
+
+                if (track) {
+                    return track;
+                } else {
+                    // If not found, try another song
+                    console.warn(`Could not find: ${song.artist} - ${song.title}`);
+                    return this.getRandomTrack();
+                }
+            }
+        };
+
+        // UI Controller
+        const UI = {
+            showScreen(screenId) {
+                document.querySelectorAll('.screen').forEach(screen => {
+                    screen.classList.remove('active');
+                });
+                document.getElementById(screenId).classList.add('active');
+            },
+
+            async animateModeSelection() {
+                this.showScreen('modeSelectionScreen');
+
+                const quadrants = document.querySelectorAll('.mode-quadrant');
+                let currentIndex = 0;
+                let iterations = 0;
+                const maxIterations = 15;
+                const baseDelay = 150;
+
+                return new Promise((resolve) => {
+                    const interval = setInterval(() => {
+                        quadrants.forEach(q => q.classList.remove('active'));
+                        quadrants[currentIndex].classList.add('active');
+
+                        currentIndex = (currentIndex + 1) % 4;
+                        iterations++;
+
+                        if (iterations >= maxIterations) {
+                            clearInterval(interval);
+
+                            const selectedMode = Math.floor(Math.random() * 4);
+                            quadrants.forEach(q => q.classList.remove('active'));
+                            quadrants[selectedMode].classList.add('active');
+
+                            GameState.currentMode = GameModes[selectedMode];
+
+                            setTimeout(() => {
+                                resolve();
+                            }, 1500);
+                        }
+                    }, baseDelay + (iterations * 10));
+                });
+            },
+
+            showModeIntro() {
+                document.getElementById('selectedModeEmoji').textContent = GameState.currentMode.emoji;
+                document.getElementById('selectedModeLabel').textContent = GameState.currentMode.label;
+                this.showScreen('modeIntroScreen');
+            },
+
+            async displaySong(song) {
+                document.getElementById('currentModeEmoji').textContent = GameState.currentMode.emoji;
+                document.getElementById('currentModeLabel').textContent = GameState.currentMode.label;
+
+                document.getElementById('songTitle').textContent = song.name;
+                document.getElementById('artistName').textContent = song.artist;
+                document.getElementById('releaseYear').textContent = song.year;
+
+                const albumArt = document.getElementById('albumArt');
+                if (song.album_art) {
+                    albumArt.style.backgroundImage = `url(${song.album_art})`;
+                } else {
+                    albumArt.style.backgroundImage = 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))';
+                }
+
+                // Setup audio
+                if (song.preview_url) {
+                    GameState.audioPlayer.src = song.preview_url;
+                    document.getElementById('playBtn').disabled = false;
+                    document.getElementById('playBtn').textContent = '▶️ Play';
+                } else {
+                    document.getElementById('playBtn').disabled = true;
+                    document.getElementById('playBtn').textContent = '❌ No Preview';
+                }
+            },
+
+            updateProgress(currentTime, duration) {
+                const percentage = (currentTime / duration) * 100;
+                document.getElementById('progressFill').style.width = `${percentage}%`;
+            },
+
+            hideMetadata() {
+                document.getElementById('hiddenState').style.display = 'flex';
+                document.getElementById('revealedState').style.display = 'none';
+            },
+
+            revealMetadata() {
+                document.getElementById('hiddenState').style.display = 'none';
+                document.getElementById('revealedState').style.display = 'block';
+            },
+
+            toggleSettingsModal(show) {
+                const modal = document.getElementById('settingsModal');
+                if (show) {
+                    modal.style.display = 'flex';
+                    setTimeout(() => modal.classList.add('active'), 10);
+                } else {
+                    modal.classList.remove('active');
+                    setTimeout(() => modal.style.display = 'none', 300);
+                }
+            }
+        };
+
+        // Game Controller
+        const Game = {
+            async start() {
+                await UI.animateModeSelection();
+                UI.showModeIntro();
+            },
+
+            async proceedToGame() {
+                // Load song first
+                await this.loadNewSong();
+
+                // Show game screen
+                UI.showScreen('gameScreen');
+                UI.hideMetadata();
+
+                // Auto-play the song (this works because it's triggered by user click on Proceed button)
+                if (GameState.currentSong && GameState.currentSong.preview_url) {
+                    try {
+                        await GameState.audioPlayer.play();
+                        document.getElementById('playBtn').textContent = '⏸️ Pause';
+                    } catch (error) {
+                        console.warn('Autoplay failed:', error);
+                        // Button stays as "Play" if autoplay fails
+                    }
+                }
+            },
+
+            async loadNewSong() {
+                // Show loading state
+                document.getElementById('songTitle').textContent = 'Loading...';
+                document.getElementById('artistName').textContent = 'Searching iTunes...';
+                document.getElementById('releaseYear').textContent = '...';
+                document.getElementById('playBtn').disabled = true;
+                document.getElementById('playBtn').textContent = '⏳ Loading';
+
+                GameState.currentSong = await iTunesService.getRandomTrack();
+                await UI.displaySong(GameState.currentSong);
+            }
+        };
+
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', async () => {
+            GameState.audioPlayer = document.getElementById('audioPlayer');
+
+            document.getElementById('startBtn').addEventListener('click', () => {
+                Game.start();
+            });
+
+            document.getElementById('proceedBtn').addEventListener('click', () => {
+                Game.proceedToGame();
+            });
+
+            document.getElementById('settingsBtn').addEventListener('click', () => {
+                UI.toggleSettingsModal(true);
+            });
+
+            document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+                UI.toggleSettingsModal(false);
+            });
+
+            // Close modal on outside click
+            window.addEventListener('click', (event) => {
+                const modal = document.getElementById('settingsModal');
+                if (event.target === modal) {
+                    UI.toggleSettingsModal(false);
+                }
+            });
+
+            // Playlist Selection
+            document.querySelectorAll('input[name="playlistSource"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    if (e.target.value === 'hun') {
+                        PlaylistSongs = hunSongs;
+                        console.log('Switched to Hungarian Playlist');
+                    } else {
+                        PlaylistSongs = bingoSongs;
+                        console.log('Switched to Bingo Playlist');
+                    }
+                    // Clear used indices when switching playlists
+                    iTunesService.usedIndices.clear();
+                });
+            });
+
+            document.getElementById('revealBtn').addEventListener('click', () => {
+                UI.revealMetadata();
+            });
+
+            document.getElementById('playBtn').addEventListener('click', () => {
+                const btn = document.getElementById('playBtn');
+                if (GameState.audioPlayer.paused) {
+                    GameState.audioPlayer.play();
+                    btn.textContent = '⏸️ Pause';
+                } else {
+                    GameState.audioPlayer.pause();
+                    btn.textContent = '▶️ Play';
+                }
+            });
+
+            GameState.audioPlayer.addEventListener('timeupdate', () => {
+                UI.updateProgress(
+                    GameState.audioPlayer.currentTime,
+                    GameState.audioPlayer.duration
+                );
+            });
+
+            GameState.audioPlayer.addEventListener('ended', () => {
+                document.getElementById('playBtn').textContent = '▶️ Play';
+            });
+
+            document.getElementById('nextBtn').addEventListener('click', async () => {
+                GameState.audioPlayer.pause();
+                GameState.audioPlayer.currentTime = 0;
+                document.getElementById('playBtn').textContent = '▶️ Play';
+                UI.hideMetadata();
+                await Game.loadNewSong();
+                // Auto-play new song
+                if (GameState.currentSong && GameState.currentSong.preview_url) {
+                    try {
+                        await GameState.audioPlayer.play();
+                        document.getElementById('playBtn').textContent = '⏸️ Pause';
+                    } catch (error) {
+                        console.warn('Autoplay failed:', error);
+                    }
+                }
+            });
+
+            document.getElementById('homeBtn').addEventListener('click', () => {
+                GameState.audioPlayer.pause();
+                GameState.audioPlayer.currentTime = 0;
+                document.getElementById('playBtn').textContent = '▶️ Play';
+                UI.showScreen('startScreen');
+            });
+        });
+
+    </script>
+</body>
+
+</html>
