@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hitster Controller</title>
+    <style>
+        :root {
+            --bg-dark: #0F0F1E;
+            --bg-card: rgba(255, 255, 255, 0.05);
+            --text-primary: #FFFFFF;
+            --text-secondary: rgba(255, 255, 255, 0.6);
+            --accent-green: #4ECDC4;
+            --accent-pink: #FF6B9D;
+            --accent-purple: #A78BFA;
+            --accent-blue: #3B82F6;
+            --accent-yellow: #FFD93D;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 1rem;
+            display: flex;
+            justify-content: flex-end;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-clear {
+            background: rgba(255, 59, 48, 0.2);
+            color: #FF3B30;
+            border: 1px solid rgba(255, 59, 48, 0.5);
+            padding: 0.5rem 1.5rem;
+            border-radius: 99px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-clear:active {
+            background: rgba(255, 59, 48, 0.4);
+            transform: scale(0.95);
+        }
+
+        .content {
+            flex: 1;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1rem;
+            transition: opacity 0.3s ease, filter 0.3s ease;
+        }
+
+        .section.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+            filter: grayscale(1);
+        }
+
+        .section-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        /* Switches */
+        .switch-group {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .switch-btn {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid transparent;
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .switch-btn.active {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: currentColor;
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .switch-icon {
+            font-size: 1.5rem;
+        }
+
+        /* Decades Grid */
+        .decade-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+        }
+
+        .decade-btn {
+            background: rgba(167, 139, 250, 0.1);
+            color: var(--accent-purple);
+            border: none;
+            padding: 0.75rem 0;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        .decade-btn.active {
+            background: var(--accent-purple);
+            color: #000;
+            box-shadow: 0 0 15px rgba(167, 139, 250, 0.4);
+        }
+
+        /* Year Input */
+        .year-display {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 0.5rem;
+            color: var(--accent-blue);
+            margin-bottom: 1rem;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+
+        .num-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            padding: 1rem 0;
+            border-radius: 8px;
+            font-size: 1.5rem;
+            color: white;
+            cursor: pointer;
+        }
+
+        .num-btn:active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .num-btn.span-2 {
+            grid-column: span 2;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <button class="btn-clear" onclick="clearAll()">CLEAR RESET</button>
+    </div>
+
+    <div class="content">
+
+        <!-- Mode 3: Solo vs Band -->
+        <div id="section-solo-band" class="section">
+            <div class="section-title">Type</div>
+            <div class="switch-group">
+                <div class="switch-btn" style="color: var(--accent-green)" onclick="selectSwitch('solo-band', 'solo')">
+                    <span class="switch-icon">👤</span>
+                    Solo
+                </div>
+                <div class="switch-btn" style="color: var(--accent-green)" onclick="selectSwitch('solo-band', 'band')">
+                    <span class="switch-icon">👥</span>
+                    Band
+                </div>
+            </div>
+        </div>
+
+        <!-- Mode 2: Before vs After 2000 -->
+        <div id="section-2000" class="section">
+            <div class="section-title">Timeline</div>
+            <div class="switch-group">
+                <div class="switch-btn" style="color: var(--accent-pink)" onclick="selectSwitch('2000', 'before')">
+                    <span class="switch-icon">⬅️</span>
+                    Pre-2000
+                </div>
+                <div class="switch-btn" style="color: var(--accent-pink)" onclick="selectSwitch('2000', 'after')">
+                    <span class="switch-icon">➡️</span>
+                    Post-2000
+                </div>
+            </div>
+        </div>
+
+        <!-- Mode 4: Decades -->
+        <div id="section-decades" class="section">
+            <div class="section-title">Decades</div>
+            <div class="decade-grid">
+                <button class="decade-btn" onclick="selectDecade(this)">50s</button>
+                <button class="decade-btn" onclick="selectDecade(this)">60s</button>
+                <button class="decade-btn" onclick="selectDecade(this)">70s</button>
+                <button class="decade-btn" onclick="selectDecade(this)">80s</button>
+                <button class="decade-btn" onclick="selectDecade(this)">90s</button>
+                <button class="decade-btn" onclick="selectDecade(this)">00s</button>
+                <button class="decade-btn" onclick="selectDecade(this)">10s</button>
+                <button class="decade-btn" onclick="selectDecade(this)">20s</button>
+            </div>
+        </div>
+
+        <!-- Mode 0 & 1: Year Input -->
+        <div id="section-year" class="section">
+            <div class="section-title">Exact Year</div>
+            <div id="yearDisplay" class="year-display">_ _ _ _</div>
+            <div class="numpad">
+                <button class="num-btn" onclick="inputNum(1)">1</button>
+                <button class="num-btn" onclick="inputNum(2)">2</button>
+                <button class="num-btn" onclick="inputNum(3)">3</button>
+                <button class="num-btn" onclick="inputNum(4)">4</button>
+                <button class="num-btn" onclick="inputNum(5)">5</button>
+                <button class="num-btn" onclick="inputNum(6)">6</button>
+                <button class="num-btn" onclick="inputNum(7)">7</button>
+                <button class="num-btn" onclick="inputNum(8)">8</button>
+                <button class="num-btn" onclick="inputNum(9)">9</button>
+                <button class="num-btn" onclick="inputNum(0)">0</button>
+                <button class="num-btn span-2" onclick="backspaceNum()">⌫</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentYear = '';
+        let activeSection = null; // 'solo-band', '2000', 'decades', 'year'
+
+        function lockOthers(sectionId) {
+            if (activeSection && activeSection !== sectionId) return false;
+
+            activeSection = sectionId;
+            const sections = ['solo-band', '2000', 'decades', 'year'];
+
+            sections.forEach(id => {
+                const el = document.getElementById('section-' + id);
+                if (id !== sectionId) {
+                    el.classList.add('disabled');
+                } else {
+                    el.classList.remove('disabled');
+                }
+            });
+            return true;
+        }
+
+        // --- Switch Logic ---
+        function selectSwitch(group, value) {
+            if (!lockOthers(group)) return;
+
+            // Find buttons in this group
+            const section = document.getElementById('section-' + group);
+            const buttons = section.querySelectorAll('.switch-btn');
+
+            // Visual toggle
+            // We find which one was clicked by text content or similar, but simpler is to pass 'this' context,
+            // but for now let's just use event target from DOM click for simplicity in locating siblings? 
+            // Actually, let's just reset all in group and set the clicked one.
+            // Since we passed values, we can't easily map back to element without ID.
+            // Let's iterate.
+
+            // Hacky but works: check text content includes the label
+            const labels = {
+                'solo': 'Solo', 'band': 'Band',
+                'before': 'Pre-2000', 'after': 'Post-2000'
+            };
+
+            buttons.forEach(btn => {
+                if (btn.textContent.includes(labels[value])) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        // --- Decade Logic ---
+        function selectDecade(btn) {
+            if (!lockOthers('decades')) return;
+
+            // Remove active from others
+            document.querySelectorAll('.decade-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        // --- Year Logic ---
+        function updateYearDisplay() {
+            let display = currentYear.padEnd(4, '_').split('').join(' ');
+            document.getElementById('yearDisplay').textContent = display;
+        }
+
+        function inputNum(num) {
+            if (!lockOthers('year')) return;
+            if (currentYear.length < 4) {
+                currentYear += num;
+                updateYearDisplay();
+            }
+        }
+
+        function backspaceNum() {
+            if (activeSection !== 'year') return;
+            currentYear = currentYear.slice(0, -1);
+            updateYearDisplay();
+
+            if (currentYear.length === 0) {
+                // If year is empty, technically we could unlock, but specs say clear button needed.
+                // Keeping locked for consistent behavior "when any input is made"
+            }
+        }
+
+        // --- Clear Logic ---
+        function clearAll() {
+            activeSection = null;
+            currentYear = '';
+
+            // Unlock all sections
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('disabled'));
+
+            // Reset Year
+            updateYearDisplay();
+
+            // Reset Decades
+            document.querySelectorAll('.decade-btn').forEach(b => b.classList.remove('active'));
+
+            // Reset Switches
+            document.querySelectorAll('.switch-btn').forEach(b => b.classList.remove('active'));
+        }
+    </script>
+</body>
+
+</html>
