@@ -262,118 +262,85 @@
             transform: scale(0.95);
         }
 
-        /* Mode Selection - Pizza Layout */
+        /* Mode Selection Grid */
         .mode-grid {
-            position: relative;
-            width: 80vmin;
-            height: 80vmin;
-            margin: auto;
-            border-radius: 50%;
-            overflow: hidden;
-            display: block;
-            background: var(--bg-dark);
-            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
-            /* Center vertically on screen */
-            top: 50%;
-            transform: translateY(-50%);
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: 1fr 1fr;
+            width: 100vw;
+            height: 100vh;
+            gap: 0;
         }
 
         .mode-quadrant {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 50%;
-            height: 50%;
-            transform-origin: 0% 100%;
-            overflow: hidden;
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: var(--bg-dark);
             transition: all 0.3s ease;
-            display: block;
-            /* Override flex */
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            grid-column: span 3;
         }
 
-        /* 5 Slices of 72deg. Skew = 90 - 72 = 18deg */
+        .mode-quadrant:nth-child(5) {
+            grid-column: 2 / 6;
+        }
+
         .mode-quadrant[data-mode="0"] {
-            transform: rotate(0deg) skewY(-18deg);
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, transparent 100%);
+            background: linear-gradient(135deg, rgba(255, 107, 157, 0.1) 0%, transparent 100%);
         }
 
         .mode-quadrant[data-mode="1"] {
-            transform: rotate(72deg) skewY(-18deg);
-            background: linear-gradient(135deg, rgba(255, 217, 61, 0.2) 0%, transparent 100%);
+            background: linear-gradient(135deg, rgba(78, 205, 196, 0.1) 0%, transparent 100%);
         }
 
         .mode-quadrant[data-mode="2"] {
-            transform: rotate(144deg) skewY(-18deg);
-            background: linear-gradient(135deg, rgba(255, 107, 157, 0.2) 0%, transparent 100%);
+            background: linear-gradient(135deg, rgba(255, 217, 61, 0.1) 0%, transparent 100%);
         }
 
         .mode-quadrant[data-mode="3"] {
-            transform: rotate(216deg) skewY(-18deg);
-            background: linear-gradient(135deg, rgba(78, 205, 196, 0.2) 0%, transparent 100%);
+            background: linear-gradient(135deg, rgba(167, 139, 250, 0.1) 0%, transparent 100%);
         }
 
         .mode-quadrant[data-mode="4"] {
-            transform: rotate(288deg) skewY(-18deg);
-            background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, transparent 100%);
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, transparent 100%);
         }
-
-        /* Override the old nth-child rule */
-        .mode-quadrant:nth-child(5) {
-            grid-column: auto;
-        }
-
 
         .mode-quadrant.active {
+            transform: scale(1.05);
             z-index: 10;
-            /* Highlight effect */
-            filter: brightness(1.5);
         }
 
         .mode-quadrant[data-mode="0"].active {
-            background: var(--mode-0-color);
-            box-shadow: 0 0 30px var(--mode-0-color);
+            background: linear-gradient(135deg, var(--mode-0-color) 0%, rgba(255, 107, 157, 0.3) 100%);
+            box-shadow: 0 0 60px var(--mode-0-color);
         }
 
         .mode-quadrant[data-mode="1"].active {
-            background: var(--mode-1-color);
-            box-shadow: 0 0 30px var(--mode-1-color);
+            background: linear-gradient(135deg, var(--mode-1-color) 0%, rgba(78, 205, 196, 0.3) 100%);
+            box-shadow: 0 0 60px var(--mode-1-color);
         }
 
         .mode-quadrant[data-mode="2"].active {
-            background: var(--mode-2-color);
-            box-shadow: 0 0 30px var(--mode-2-color);
+            background: linear-gradient(135deg, var(--mode-2-color) 0%, rgba(255, 217, 61, 0.3) 100%);
+            box-shadow: 0 0 60px var(--mode-2-color);
         }
 
         .mode-quadrant[data-mode="3"].active {
-            background: var(--mode-3-color);
-            box-shadow: 0 0 30px var(--mode-3-color);
+            background: linear-gradient(135deg, var(--mode-3-color) 0%, rgba(167, 139, 250, 0.3) 100%);
+            box-shadow: 0 0 60px var(--mode-3-color);
         }
 
         .mode-quadrant[data-mode="4"].active {
-            background: var(--mode-4-color);
-            box-shadow: 0 0 30px var(--mode-4-color);
+            background: linear-gradient(135deg, var(--mode-4-color) 0%, rgba(168, 85, 247, 0.3) 100%);
+            box-shadow: 0 0 60px var(--mode-4-color);
         }
 
         .mode-content {
-            position: absolute;
-            left: -100%;
-            bottom: -100%;
-            width: 200%;
-            height: 200%;
-            border-radius: 50%;
-            transform: skewY(18deg) rotate(36deg);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
             text-align: center;
-            opacity: 0.8;
+            opacity: 0.4;
             transition: opacity 0.3s ease;
-            pointer-events: none;
-            /* Let clicks pass to slice */
-            padding-top: 5vmin;
-            /* Push content out a bit towards edge */
         }
 
         .mode-quadrant.active .mode-content {
@@ -381,21 +348,15 @@
         }
 
         .mode-emoji {
-            font-size: 4rem;
-            margin-bottom: 0.5rem;
-            /* Counter-rotate if needed, but here we want it aligned with radius? No, upright relative to center.
-               Actually with the current transform, text will be rotated around the circle.
-               For better readability, we might want to rotate text back, but that's complex.
-               Let's stick to radial alignment first.
-            */
+            font-size: 6rem;
+            margin-bottom: 1rem;
         }
 
         .mode-label {
-            font-size: 1rem;
+            font-size: 1.5rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            max-width: 120px;
+            letter-spacing: 2px;
         }
 
         /* Mode Intro Screen */
